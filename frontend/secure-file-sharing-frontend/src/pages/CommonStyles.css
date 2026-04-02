@@ -4,6 +4,7 @@
   justify-content: center;
   align-items: center;
   background: url("/background.png") no-repeat center center/cover;
+  background-attachment: fixed;
 }
 
 .page-content {

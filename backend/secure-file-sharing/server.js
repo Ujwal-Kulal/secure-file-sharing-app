@@ -3,11 +3,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const morgan = require('morgan');
+const path = require('path');
 
 const authRoutes = require('./routes/authRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const downloadRoutes = require('./routes/downloadRoutes');
 const logRoutes = require('./routes/logRoutes');
+const groupRoutes = require('./routes/groupRoutes');
 
 const app = express();
 
@@ -17,11 +19,13 @@ app.use(cors({
   credentials: true
 }));
 app.use(morgan('dev'));
-app.use(express.json());
-app.use('/uploads', express.static('uploads')); // Serve files statically
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'))); // Serve files statically
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/groups', groupRoutes);
 app.use('/api/files', uploadRoutes);
 app.use('/api/files', downloadRoutes);
 app.use('/api/logs', logRoutes);

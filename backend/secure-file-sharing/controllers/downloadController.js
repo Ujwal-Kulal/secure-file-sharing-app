@@ -4,6 +4,21 @@ const fs = require('fs');
 const path = require('path');
 const Log = require('../models/Log');
 
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  const normalizeIp = (ip) => {
+    if (!ip) return 'Unknown';
+    const clean = ip.trim();
+    if (clean === '::1') return '127.0.0.1';
+    if (clean.startsWith('::ffff:')) return clean.replace('::ffff:', '');
+    return clean;
+  };
+  if (forwarded) {
+    return normalizeIp(forwarded.split(',')[0]);
+  }
+  return normalizeIp(req.ip || req.socket?.remoteAddress);
+};
+
 // Direct download (from dashboard) - bypasses expiry check
 exports.directDownloadFile = async (req, res) => {
   try {
@@ -40,7 +55,7 @@ exports.directDownloadFile = async (req, res) => {
     await Log.create({
       fileId: file._id,
       action: 'download',
-      ipAddress: req.ip,
+      ipAddress: getClientIp(req),
       userAgent: req.headers['user-agent'],
       userId: req.user?.id || null,
     });
@@ -96,7 +111,7 @@ exports.downloadFile = async (req, res) => {
     await Log.create({
       fileId: file._id,
       action: 'download',
-      ipAddress: req.ip,
+      ipAddress: getClientIp(req),
       userAgent: req.headers['user-agent'],
       userId: req.user?.id || null,
     });

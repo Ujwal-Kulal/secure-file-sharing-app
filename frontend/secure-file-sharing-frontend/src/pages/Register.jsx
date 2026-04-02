@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import "./CommonStyles.css";
 
 export default function Register() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,6 +22,9 @@ export default function Register() {
       const data = await response.json();
       if (response.ok) {
         alert("Registration successful! Please log in.");
+        if (data.token && data.user) {
+          login(data.token, data.user);
+        }
         navigate("/login");
       } else {
         alert(data.message || "Registration failed");

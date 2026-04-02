@@ -4,6 +4,7 @@ const router = express.Router();
 const Log = require('../models/Log');
 const File = require('../models/File');
 const User = require('../models/User');
+const Group = require('../models/Group');
 
 const { protect } = require('../middleware/authMiddleware');
 
@@ -13,15 +14,30 @@ router.get('/:fileId', protect, async (req, res) => {
     const { fileId } = req.params;
     const currentUserId = req.user.id;
 
-    // Get all logs related to this file
-    const logs = await Log.find({ fileId }).sort({ timestamp: -1 });
-
     // Get file details
     const file = await File.findById(fileId);
     if (!file) return res.status(404).json({ message: 'File not found' });
 
-    // Check if current user is the file owner
+    // Check if current user is the file uploader
     const isFileOwner = file.uploadedBy.toString() === currentUserId;
+
+    let isGroupOwner = false;
+    if (file.groupId) {
+      const group = await Group.findOne({ uniqueId: file.groupId.trim().toUpperCase() });
+      if (group) {
+        const ownerIds = Array.isArray(group.owners) && group.owners.length > 0
+          ? group.owners.map((owner) => owner.toString())
+          : [group.createdBy.toString()];
+        isGroupOwner = ownerIds.includes(currentUserId);
+      }
+    }
+
+    if (!isFileOwner && !isGroupOwner) {
+      return res.status(403).json({ message: 'Only the uploader or a group owner can view detailed logs' });
+    }
+
+    // Get all logs related to this file
+    const logs = await Log.find({ fileId }).sort({ timestamp: -1 });
 
     // Get file owner information (only for file owners)
     let fileOwner = null;
@@ -41,7 +57,7 @@ router.get('/:fileId', protect, async (req, res) => {
           
           if (user) {
             // If current user is file owner, show full details
-            if (isFileOwner) {
+            if (isFileOwner || isGroupOwner) {
               userDisplay = user.username || user.email;
               userDetails = {
                 username: user.username,
@@ -68,13 +84,15 @@ router.get('/:fileId', protect, async (req, res) => {
         return {
           action: log.action,
           timestamp: log.timestamp,
-          ipAddress: log.ipAddress,
+          ipAddress: log.ipAddress || 'N/A',
           userAgent: log.userAgent,
           user: userDisplay,
           userDetails: userDetails,
+          isCurrentUser: log.userId ? log.userId.toString() === currentUserId : false,
           fileName: file.originalName,
           fileSize: file.size,
           isFileOwner: isFileOwner,
+          isGroupOwner: isGroupOwner,
           fileOwnerInfo: fileOwner ? {
             username: fileOwner.username,
             email: fileOwner.email

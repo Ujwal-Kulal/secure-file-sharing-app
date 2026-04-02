@@ -28,7 +28,12 @@ export default function LogsPage() {
           setIsFileOwner(res.data[0].isFileOwner);
         }
       } catch (err) {
-        setError(err.response?.data?.message || "Failed to fetch logs");
+        const status = err.response?.status;
+        if (status === 403) {
+          setError("Only the file owner can view detailed logs for this file.");
+        } else {
+          setError(err.response?.data?.message || "Failed to fetch logs");
+        }
       }
       setLoading(false);
     }
@@ -36,6 +41,27 @@ export default function LogsPage() {
   }, [fileId]);
 
   const formatUserInfo = (log) => {
+    if (log.isCurrentUser) {
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '4px 10px',
+            borderRadius: '999px',
+            background: 'linear-gradient(90deg, #00bcd4, #4f8cff)',
+            color: '#fff',
+            fontWeight: 'bold',
+            fontSize: '0.85rem',
+            letterSpacing: '0.4px'
+          }}
+        >
+          You
+        </span>
+      );
+    }
+
     if (log.user === 'Anonymous') {
       return 'Anonymous';
     }
@@ -130,24 +156,31 @@ export default function LogsPage() {
               </div>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: "100%", background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)', borderCollapse: 'collapse' }}>
+              <table style={{ width: "100%", background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                <colgroup>
+                  <col style={{ width: '12%' }} />
+                  <col style={{ width: '23%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '33%' }} />
+                  <col style={{ width: '18%' }} />
+                </colgroup>
                 <thead>
                   <tr style={{ color: "#4f8cff", fontSize: '1.08rem', background: 'rgba(255,255,255,0.13)' }}>
-                    <th style={{ padding: '12px 8px', borderRadius: '8px 0 0 8px' }}><Activity size={18} style={{ marginRight: 6 }} /> Action</th>
-                    <th style={{ padding: '12px 8px' }}><Clock size={18} style={{ marginRight: 6 }} /> Timestamp</th>
-                    <th style={{ padding: '12px 8px' }}><Globe size={18} style={{ marginRight: 6 }} /> IP Address</th>
-                    <th style={{ padding: '12px 8px' }}><MonitorSmartphone size={18} style={{ marginRight: 6 }} /> User Agent</th>
-                    <th style={{ padding: '12px 8px', borderRadius: '0 8px 8px 0' }}><User size={18} style={{ marginRight: 6 }} /> User</th>
+                    <th style={{ padding: '12px 8px', borderRadius: '8px 0 0 8px' }}><Activity size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Action</th>
+                    <th style={{ padding: '12px 8px' }}><Clock size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Timestamp</th>
+                    <th style={{ padding: '12px 8px' }}><Globe size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> IP Address</th>
+                    <th style={{ padding: '12px 8px' }}><MonitorSmartphone size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> User Agent</th>
+                    <th style={{ padding: '12px 8px', borderRadius: '0 8px 8px 0' }}><User size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> User</th>
                   </tr>
                 </thead>
                 <tbody>
                   {logs.map((log, idx) => (
                     <tr key={idx} style={{ color: '#fff', background: idx % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.09)', fontSize: '1rem' }}>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>{log.action}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>{new Date(log.timestamp).toLocaleString()}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>{log.ipAddress}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>{log.userAgent}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>{formatUserInfo(log)}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.action}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={new Date(log.timestamp).toLocaleString()}>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.ipAddress || "N/A"}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={log.userAgent}>{log.userAgent}</td>
+                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatUserInfo(log)}</td>
                     </tr>
                   ))}
                 </tbody>

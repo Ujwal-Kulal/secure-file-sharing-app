@@ -1,15 +1,22 @@
 import React, { useState } from "react";
 import { LogIn } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import "./CommonStyles.css";
 
 export default function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
+
     try {
       const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
@@ -18,13 +25,15 @@ export default function Login() {
       });
       const data = await response.json();
       if (response.ok && data.token) {
-        localStorage.setItem("token", data.token);
+        login(data.token, data.user);
         navigate("/dashboard");
       } else {
-        alert(data.message || "Login failed");
+        setError(data.message || "Login failed");
       }
     } catch (error) {
-      alert("An error occurred during login");
+      setError("An error occurred during login");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -32,6 +41,7 @@ export default function Login() {
     <div className="page-container">
       <div className="page-content">
         <h1 className="page-heading">Login</h1>
+        {error && <div style={{ color: "red", marginBottom: "10px" }}>{error}</div>}
         <form onSubmit={handleLogin}>
           <input
             type="email"
@@ -39,6 +49,7 @@ export default function Login() {
             className="input-field"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            disabled={loading}
           />
           <input
             type="password"
@@ -46,11 +57,12 @@ export default function Login() {
             className="input-field"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            disabled={loading}
           />
           <div className="button-group">
-            <button type="submit">
+            <button type="submit" disabled={loading}>
               <LogIn size={18} />
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
           </div>
         </form>

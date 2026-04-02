@@ -21,7 +21,18 @@ exports.register = async (req, res) => {
     const newUser = await User.create({ username, email, password });
     const token = generateToken(newUser);
 
-    res.status(201).json({ message: 'User registered successfully', token });
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        profilePicture: newUser.profilePicture || '',
+        phoneNumber: newUser.phoneNumber || '',
+        address: newUser.address || ''
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
@@ -37,9 +48,96 @@ exports.login = async (req, res) => {
     }
 
     const token = generateToken(user);
-    res.json({ message: 'Login successful', token });
+    res.json({
+      message: 'Login successful',
+      token,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || ''
+      }
+    });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+exports.verify = async (req, res) => {
+  try {
+    // If we reach here, the token is valid (protected route passed)
+    res.json({ message: 'Token is valid', user: req.user });
+  } catch (err) {
+    res.status(401).json({ message: 'Token verification failed' });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || ''
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load profile', error: err.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { username, phoneNumber, address, profilePicture } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (username && username !== user.username) {
+      const existingUser = await User.findOne({ username, _id: { $ne: user._id } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
+      user.username = username;
+    }
+
+    if (typeof phoneNumber === 'string') {
+      user.phoneNumber = phoneNumber;
+    }
+    if (typeof address === 'string') {
+      user.address = address;
+    }
+    if (typeof profilePicture === 'string') {
+      user.profilePicture = profilePicture;
+    }
+
+    await user.save();
+
+    res.json({
+      message: 'Profile updated successfully',
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        profilePicture: user.profilePicture || '',
+        phoneNumber: user.phoneNumber || '',
+        address: user.address || ''
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update profile', error: err.message });
   }
 };
 

@@ -17,6 +17,14 @@ const fileSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  type: {
+    type: String,
+    default: 'unknown'
+  },
+  groupId: {
+    type: String,
+    default: '',
+  },
   password: String,
   expiresAt: Date,
   uploadedBy: {

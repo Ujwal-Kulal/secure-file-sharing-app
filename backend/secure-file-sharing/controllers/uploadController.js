@@ -4,11 +4,28 @@ const fs = require('fs');
 const path = require('path');
 const Log = require('../models/Log');
 
+const getClientIp = (req) => {
+  const forwarded = req.headers['x-forwarded-for'];
+  const normalizeIp = (ip) => {
+    if (!ip) return 'Unknown';
+    const clean = ip.trim();
+    if (clean === '::1') return '127.0.0.1';
+    if (clean.startsWith('::ffff:')) return clean.replace('::ffff:', '');
+    return clean;
+  };
+  if (forwarded) {
+    return normalizeIp(forwarded.split(',')[0]);
+  }
+  return normalizeIp(req.ip || req.socket?.remoteAddress);
+};
+
 exports.uploadFile = async (req, res) => {
   try {
-    const { originalname, filename, path: filePath } = req.file;
-    const { password, expiresIn } = req.body;
+    const { originalname, filename, path: filePath, mimetype } = req.file;
+    const { password, expiresIn, groupId } = req.body;
     const userId = req.user.id;
+    const extension = path.extname(originalname || filename || '').replace('.', '').toLowerCase();
+    const fileType = extension || (mimetype ? mimetype.split('/')[1] : '') || 'unknown';
 
     // 🔐 Encrypt the file using createCipheriv
     const fileBuffer = fs.readFileSync(filePath);
@@ -32,6 +49,8 @@ exports.uploadFile = async (req, res) => {
       originalName: originalname,
       path: filePath,
       size: req.file.size,
+      type: fileType,
+      groupId: groupId || '',
       password: password || null,
       expiresAt: expiryDate,
       uploadedBy: userId,
@@ -42,7 +61,7 @@ exports.uploadFile = async (req, res) => {
     await Log.create({
       fileId: file._id,
       action: 'upload',
-      ipAddress: req.ip,
+      ipAddress: getClientIp(req),
       userAgent: req.headers['user-agent'],
       userId: userId,
     });
