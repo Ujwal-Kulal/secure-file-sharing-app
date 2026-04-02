@@ -8,6 +8,7 @@ const {
 	getGroupByUniqueId,
 	getGroupFiles,
 	promoteOwner,
+	demoteOwner,
 	removeMember,
 	deleteGroup,
 } = require('../controllers/groupController');
@@ -16,6 +17,7 @@ router.post('/create', protect, createGroup);
 router.post('/join', protect, joinGroup);
 router.get('/mine', protect, getMyGroups);
 router.patch('/:uniqueId/owners/:memberId', protect, promoteOwner);
+router.delete('/:uniqueId/owners/:memberId', protect, demoteOwner);
 router.delete('/:uniqueId/members/:memberId', protect, removeMember);
 router.delete('/:uniqueId', protect, deleteGroup);
 router.get('/:uniqueId', protect, getGroupByUniqueId);

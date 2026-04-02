@@ -46,6 +46,8 @@ export default function Dashboard() {
   const [groupInfo, setGroupInfo] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
   const [sharedSearchQuery, setSharedSearchQuery] = useState("");
+  const [demoteTargetMember, setDemoteTargetMember] = useState(null);
+  const [demoteToast, setDemoteToast] = useState({ type: "", message: "" });
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -120,6 +122,14 @@ export default function Dashboard() {
     window.addEventListener("click", closeMenu);
     return () => window.removeEventListener("click", closeMenu);
   }, []);
+
+  useEffect(() => {
+    if (!demoteToast.message) return;
+    const timer = setTimeout(() => {
+      setDemoteToast({ type: "", message: "" });
+    }, 2600);
+    return () => clearTimeout(timer);
+  }, [demoteToast]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -270,6 +280,25 @@ export default function Dashboard() {
       fetchFiles();
     } catch (error) {
       alert(error.response?.data?.message || "Failed to promote member");
+    }
+  };
+
+  const handleDemoteOwner = async (memberId) => {
+    if (!groupUniqueId) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}/owners/${memberId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDemoteToast({ type: "success", message: "Owner role removed successfully." });
+      setDemoteTargetMember(null);
+      fetchFiles();
+    } catch (error) {
+      setDemoteToast({
+        type: "error",
+        message: error.response?.data?.message || "Failed to demote owner",
+      });
     }
   };
 
@@ -494,7 +523,7 @@ export default function Dashboard() {
                       <div key={member.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center", padding: "8px 10px", borderRadius: 10, background: "rgba(15, 30, 58, 0.64)", border: "1px solid rgba(255,255,255,0.1)" }}>
                         <div style={{ display: "grid", gap: 2, minWidth: 0 }}>
                           <span style={{ color: "#fff", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                            {member.username || "Member"}
+                            {member.id === (user?._id || user?.id) ? "Me" : (member.username || "Member")}
                             {member.isOwner && (
                               <span style={{ fontSize: "0.68rem", padding: "2px 8px", borderRadius: 999, background: "rgba(126,231,255,0.18)", border: "1px solid rgba(126,231,255,0.32)", color: "#cdefff" }}>
                                 OWNER
@@ -515,6 +544,16 @@ export default function Dashboard() {
                                 style={{ border: "none", padding: "6px 10px", fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: 6 }}
                               >
                                 <Shield size={13} /> Make Owner
+                              </button>
+                            )}
+                            {member.isOwner && (
+                              <button
+                                type="button"
+                                onClick={() => setDemoteTargetMember(member)}
+                                className="indian-button indian-button--saffron indian-button--menu-item"
+                                style={{ border: "none", padding: "6px 10px", fontSize: "0.75rem", display: "inline-flex", alignItems: "center", gap: 6 }}
+                              >
+                                Demote Owner
                               </button>
                             )}
                             <button
@@ -892,6 +931,41 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {demoteToast.message && (
+          <div className={`owner-toast owner-toast--${demoteToast.type || "info"}`}>
+            {demoteToast.message}
+          </div>
+        )}
+
+        {demoteTargetMember && (
+          <div className="owner-modal-backdrop" role="dialog" aria-modal="true">
+            <div className="owner-modal-card">
+              <h4>Demote Owner</h4>
+              <p>
+                Demote <strong>{demoteTargetMember.username || demoteTargetMember.email || "this member"}</strong> to a normal member?
+              </p>
+              <div className="owner-modal-actions">
+                <button
+                  type="button"
+                  className="indian-button indian-button--glass"
+                  style={{ border: "none", padding: "8px 12px" }}
+                  onClick={() => setDemoteTargetMember(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="indian-button indian-button--saffron"
+                  style={{ border: "none", padding: "8px 12px" }}
+                  onClick={() => handleDemoteOwner(demoteTargetMember.id)}
+                >
+                  Confirm Demote
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

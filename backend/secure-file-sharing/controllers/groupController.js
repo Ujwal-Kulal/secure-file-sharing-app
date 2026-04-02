@@ -249,6 +249,44 @@ exports.promoteOwner = async (req, res) => {
   }
 };
 
+exports.demoteOwner = async (req, res) => {
+  try {
+    const { uniqueId, memberId } = req.params;
+    const group = await Group.findOne({ uniqueId: uniqueId.trim().toUpperCase() });
+
+    if (!group) {
+      return res.status(404).json({ message: 'Group not found' });
+    }
+
+    const currentUserId = req.user.id.toString();
+    if (!isGroupOwner(group, currentUserId)) {
+      return res.status(403).json({ message: 'Only group owners can demote owners' });
+    }
+
+    const isMember = group.members.some((member) => String(member) === String(memberId));
+    if (!isMember) {
+      return res.status(400).json({ message: 'User is not a member of this group' });
+    }
+
+    const ownerIds = getOwnerIds(group);
+    if (!ownerIds.includes(String(memberId))) {
+      return res.status(400).json({ message: 'Selected user is not an owner' });
+    }
+
+    const nextOwners = ownerIds.filter((ownerId) => ownerId !== String(memberId));
+    if (nextOwners.length === 0) {
+      return res.status(400).json({ message: 'Group must have at least one owner' });
+    }
+
+    group.owners = nextOwners;
+    await group.save();
+
+    res.json({ message: 'Owner demoted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to demote owner', error: err.message });
+  }
+};
+
 exports.removeMember = async (req, res) => {
   try {
     const { uniqueId, memberId } = req.params;

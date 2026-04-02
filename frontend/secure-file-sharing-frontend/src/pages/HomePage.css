@@ -943,4 +943,90 @@
   }
 }
 
+.owner-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 12, 30, 0.62);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  padding: 16px;
+}
+
+.owner-modal-card {
+  width: min(460px, 100%);
+  border-radius: 18px;
+  padding: 18px;
+  color: #fff;
+  background: linear-gradient(150deg, rgba(17, 28, 54, 0.97), rgba(33, 54, 94, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 28px 56px rgba(0, 0, 0, 0.34);
+  animation: ownerModalPop 180ms ease;
+}
+
+.owner-modal-card h4 {
+  margin: 0 0 8px;
+  font-size: 1.05rem;
+}
+
+.owner-modal-card p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.86);
+  line-height: 1.6;
+}
+
+.owner-modal-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.owner-toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 1000;
+  padding: 11px 14px;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.28);
+  animation: ownerToastSlide 220ms ease;
+}
+
+.owner-toast--success {
+  background: linear-gradient(135deg, rgba(30, 132, 73, 0.95), rgba(46, 204, 113, 0.86));
+}
+
+.owner-toast--error {
+  background: linear-gradient(135deg, rgba(153, 35, 52, 0.94), rgba(219, 64, 82, 0.88));
+}
+
+@keyframes ownerModalPop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ownerToastSlide {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 
