@@ -3,6 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Sparkles, Users, Hash, BadgePlus, ArrowLeftRight, PartyPopper } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./HomePage.css";
 
 const generateUniqueId = () => {
@@ -40,7 +41,7 @@ export default function GroupCreatePage() {
     try {
       const token = localStorage.getItem("token");
       const response = await axios.post(
-        "http://localhost:5000/api/groups/create",
+        `${API_BASE_URL}/api/groups/create`,
         { name, uniqueId, memberLimit },
         { headers: { Authorization: `Bearer ${token}` } }
       );

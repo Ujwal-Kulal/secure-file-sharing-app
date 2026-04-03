@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { Download, FileText, Lock } from "lucide-react";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./HomePage.css";
 
 export default function DashboardDownloadPage() {
@@ -16,7 +17,7 @@ export default function DashboardDownloadPage() {
   React.useEffect(() => {
     async function fetchFileInfo() {
       try {
-        const res = await axios.get(`http://localhost:5000/api/files/${fileId}`);
+        const res = await axios.get(`${API_BASE_URL}/api/files/${fileId}`);
         setFileInfo(res.data);
         setShowPassword(!!res.data.password);
       } catch (err) {
@@ -35,7 +36,7 @@ export default function DashboardDownloadPage() {
       const token = localStorage.getItem("token");
       // Use direct download endpoint (requires auth, checks password, and enforces expiry)
       const res = await axios.post(
-        `http://localhost:5000/api/files/direct-download/${fileId}`,
+        `${API_BASE_URL}/api/files/direct-download/${fileId}`,
         showPassword ? { password } : {},
         {
           responseType: "blob",

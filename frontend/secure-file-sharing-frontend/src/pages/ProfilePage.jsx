@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Camera, ArrowLeft, Save, User, Phone, MapPin, Sparkles, Home, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./HomePage.css";
 
 export default function ProfilePage() {
@@ -33,7 +34,7 @@ export default function ProfilePage() {
     async function fetchProfile() {
       try {
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/auth/profile", {
+        const response = await axios.get(`${API_BASE_URL}/api/auth/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const profile = response.data.user;
@@ -90,7 +91,7 @@ export default function ProfilePage() {
       if (form.address.trim()) payload.address = form.address.trim();
       if (form.profilePicture) payload.profilePicture = form.profilePicture;
 
-      const response = await axios.put("http://localhost:5000/api/auth/profile", payload, {
+      const response = await axios.put(`${API_BASE_URL}/api/auth/profile`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

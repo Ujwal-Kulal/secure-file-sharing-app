@@ -17,6 +17,7 @@ import {
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../hooks/useAuth";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./HomePage.css";
 
 export default function HomePage() {
@@ -108,7 +109,7 @@ export default function HomePage() {
       try {
         setGroupsLoading(true);
         const token = localStorage.getItem("token");
-        const response = await axios.get("http://localhost:5000/api/groups/mine", {
+        const response = await axios.get(`${API_BASE_URL}/api/groups/mine`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMyGroups(response.data?.groups || []);
@@ -164,7 +165,7 @@ export default function HomePage() {
       }
 
       const response = await axios.post(
-        "http://localhost:5000/api/groups/join",
+        `${API_BASE_URL}/api/groups/join`,
         { uniqueId },
         { headers: { Authorization: `Bearer ${token}` } }
       );

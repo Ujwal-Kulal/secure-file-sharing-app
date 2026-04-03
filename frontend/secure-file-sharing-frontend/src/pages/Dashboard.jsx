@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../hooks/useAuth";
+import { API_BASE_URL } from "../utils/apiBase";
 import {
   Upload,
   LogOut,
@@ -59,17 +60,17 @@ export default function Dashboard() {
       const token = localStorage.getItem("token");
 
       if (groupUniqueId) {
-        const groupResponse = await axios.get(`http://localhost:5000/api/groups/${groupUniqueId}`, {
+        const groupResponse = await axios.get(`${API_BASE_URL}/api/groups/${groupUniqueId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         setGroupInfo(groupResponse.data.group);
 
         const [groupOwnedRes, groupSharedRes] = await Promise.all([
-          axios.get(`http://localhost:5000/api/files?groupId=${groupUniqueId}`, {
+          axios.get(`${API_BASE_URL}/api/files?groupId=${groupUniqueId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`http://localhost:5000/api/files/shared?groupId=${groupUniqueId}`, {
+          axios.get(`${API_BASE_URL}/api/files/shared?groupId=${groupUniqueId}`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -79,7 +80,7 @@ export default function Dashboard() {
         return;
       }
 
-      const ownedRes = await axios.get("http://localhost:5000/api/files", {
+      const ownedRes = await axios.get(`${API_BASE_URL}/api/files`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -88,7 +89,7 @@ export default function Dashboard() {
       setGroupInfo(null);
       setShowMembers(false);
 
-      const sharedRes = await axios.get("http://localhost:5000/api/files/shared", {
+      const sharedRes = await axios.get(`${API_BASE_URL}/api/files/shared`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -178,7 +179,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.post("http://localhost:5000/api/files/upload", formData, {
+      await axios.post(`${API_BASE_URL}/api/files/upload`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
@@ -202,7 +203,7 @@ export default function Dashboard() {
   const handleDelete = async (fileId) => {
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/files/${fileId}`, {
+      await axios.delete(`${API_BASE_URL}/api/files/${fileId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -243,14 +244,14 @@ export default function Dashboard() {
       let response;
 
       if (isOwnedFile) {
-        response = await fetch(`http://localhost:5000/api/files/direct-download/${fileId}`, {
+        response = await fetch(`${API_BASE_URL}/api/files/direct-download/${fileId}`, {
           method: "GET",
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
       } else {
-        response = await fetch(`http://localhost:5000/api/files/download/${fileId}`, {
+        response = await fetch(`${API_BASE_URL}/api/files/download/${fileId}`, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -306,7 +307,7 @@ export default function Dashboard() {
     try {
       const token = localStorage.getItem("token");
       await axios.patch(
-        `http://localhost:5000/api/groups/${groupUniqueId}/owners/${memberId}`,
+        `${API_BASE_URL}/api/groups/${groupUniqueId}/owners/${memberId}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -322,7 +323,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}/owners/${memberId}`, {
+      await axios.delete(`${API_BASE_URL}/api/groups/${groupUniqueId}/owners/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       showToast("success", "Owner role removed successfully.");
@@ -338,7 +339,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}/members/${memberId}`, {
+      await axios.delete(`${API_BASE_URL}/api/groups/${groupUniqueId}/members/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchFiles();
@@ -364,7 +365,7 @@ export default function Dashboard() {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}`, {
+      await axios.delete(`${API_BASE_URL}/api/groups/${groupUniqueId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       showToast("success", "Group deleted successfully.");

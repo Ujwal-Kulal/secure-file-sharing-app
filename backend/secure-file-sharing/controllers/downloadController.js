@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const Log = require('../models/Log');
+const { readBufferFromGridFs } = require('../utils/fileStorage');
 
 const getClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -43,9 +44,15 @@ exports.directDownloadFile = async (req, res) => {
       }
     }
 
-    // ✅ Use correct path
-    const filePath = path.resolve(file.path);
-    const encryptedBuffer = fs.readFileSync(filePath);
+    let encryptedBuffer;
+    if (file.gridFsId) {
+      encryptedBuffer = await readBufferFromGridFs(file.gridFsId);
+    } else if (file.path) {
+      const filePath = path.resolve(file.path);
+      encryptedBuffer = fs.readFileSync(filePath);
+    } else {
+      return res.status(404).json({ message: 'File content not found' });
+    }
     // Extract IV and encrypted data
     const iv = encryptedBuffer.slice(0, 16);
     const encryptedData = encryptedBuffer.slice(16);
@@ -99,9 +106,15 @@ exports.downloadFile = async (req, res) => {
       }
     }
 
-    // ✅ Use correct path
-    const filePath = path.resolve(file.path);
-    const encryptedBuffer = fs.readFileSync(filePath);
+    let encryptedBuffer;
+    if (file.gridFsId) {
+      encryptedBuffer = await readBufferFromGridFs(file.gridFsId);
+    } else if (file.path) {
+      const filePath = path.resolve(file.path);
+      encryptedBuffer = fs.readFileSync(filePath);
+    } else {
+      return res.status(404).json({ message: 'File content not found' });
+    }
     // Extract IV and encrypted data
     const iv = encryptedBuffer.slice(0, 16);
     const encryptedData = encryptedBuffer.slice(16);

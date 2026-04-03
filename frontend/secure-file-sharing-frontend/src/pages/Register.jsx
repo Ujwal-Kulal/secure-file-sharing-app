@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { UserPlus, Lock, Mail, User, Eye, EyeOff, Sparkles, Shield, ArrowLeft, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./CommonStyles.css";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -71,7 +72,7 @@ export default function Register() {
     }
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/register", {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, email, password }),

@@ -8,6 +8,7 @@ const { protect } = require('../middleware/authMiddleware');
 const File = require('../models/File');
 const Log = require('../models/Log');
 const Group = require('../models/Group');
+const { deleteFileFromGridFs } = require('../utils/fileStorage');
 
 const publicFilesFilter = {
   $or: [
@@ -223,9 +224,13 @@ router.delete('/:id', protect, async (req, res) => {
     }
 
     // Delete the file from storage
-    const fs = require('fs');
-    if (fs.existsSync(file.path)) {
-      fs.unlinkSync(file.path);
+    if (file.gridFsId) {
+      await deleteFileFromGridFs(file.gridFsId);
+    } else if (file.path) {
+      const fs = require('fs');
+      if (fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
     }
 
     // Delete from database

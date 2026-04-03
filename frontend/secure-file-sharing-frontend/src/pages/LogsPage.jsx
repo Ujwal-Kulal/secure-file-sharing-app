@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FileText, User, Clock, Globe, MonitorSmartphone, Activity, Mail, Eye } from "lucide-react";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./ActivityLogs.css";
 
 export default function LogsPage() {
@@ -16,7 +17,7 @@ export default function LogsPage() {
     async function fetchLogs() {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(`http://localhost:5000/api/logs/${fileId}`, {
+        const res = await axios.get(`${API_BASE_URL}/api/logs/${fileId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
         setLogs(res.data);

@@ -4,6 +4,7 @@ const path = require('path');
 const Group = require('../models/Group');
 const File = require('../models/File');
 const Log = require('../models/Log');
+const { deleteFileFromGridFs } = require('../utils/fileStorage');
 
 const generateUniqueId = async () => {
   let uniqueId = '';
@@ -355,9 +356,13 @@ exports.deleteGroup = async (req, res) => {
     const fileIds = groupFiles.map((file) => file._id);
 
     for (const file of groupFiles) {
-      const filePath = path.resolve(file.path);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      if (file.gridFsId) {
+        await deleteFileFromGridFs(file.gridFsId);
+      } else if (file.path) {
+        const filePath = path.resolve(file.path);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
       }
     }
 

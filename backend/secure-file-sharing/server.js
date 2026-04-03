@@ -12,10 +12,11 @@ const logRoutes = require('./routes/logRoutes');
 const groupRoutes = require('./routes/groupRoutes');
 
 const app = express();
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:5173',
+  origin: frontendUrl,
   credentials: true
 }));
 app.use(morgan('dev'));

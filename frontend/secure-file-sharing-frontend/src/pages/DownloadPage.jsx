@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { Download, FileText, Lock, Clock, AlertCircle } from "lucide-react";
+import { API_BASE_URL } from "../utils/apiBase";
 import "./DownloadLink.css";
 
 export default function DownloadPage() {
@@ -18,7 +19,7 @@ export default function DownloadPage() {
   useEffect(() => {
     async function fetchFileInfo() {
       try {
-        const res = await axios.get(`http://localhost:5000/api/files/${fileId}`);
+        const res = await axios.get(`${API_BASE_URL}/api/files/${fileId}`);
         setFileInfo(res.data);
         setShowPassword(!!res.data.password);
         
@@ -66,7 +67,7 @@ export default function DownloadPage() {
       const token = localStorage.getItem("token");
       // Use regular download endpoint that checks expiry
       const res = await axios.post(
-        `http://localhost:5000/api/files/download/${fileId}`,
+        `${API_BASE_URL}/api/files/download/${fileId}`,
         showPassword ? { password } : {},
         {
           responseType: "blob",

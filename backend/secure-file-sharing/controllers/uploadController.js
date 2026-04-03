@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const Log = require('../models/Log');
 const Group = require('../models/Group');
+const { uploadBufferToGridFs } = require('../utils/fileStorage');
 
 const getClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -39,8 +40,9 @@ const getDisplayName = (originalName, customFileName) => {
 };
 
 exports.uploadFile = async (req, res) => {
+  const filePath = req.file?.path;
   try {
-    const { originalname, filename, path: filePath, mimetype } = req.file;
+    const { originalname, filename, mimetype } = req.file;
     const { password, expiresIn, groupId, customFileName } = req.body;
     const userId = req.user.id;
     const extension = path.extname(originalname || filename || '').replace('.', '').toLowerCase();
@@ -55,7 +57,6 @@ exports.uploadFile = async (req, res) => {
     const encryptedBuffer = Buffer.concat([cipher.update(fileBuffer), cipher.final()]);
     // Store IV at the beginning of the file for later decryption
     const finalBuffer = Buffer.concat([iv, encryptedBuffer]);
-    fs.writeFileSync(filePath, finalBuffer);
 
     // ⏳ Set expiry date if provided
     let expiryDate = null;
@@ -80,11 +81,21 @@ exports.uploadFile = async (req, res) => {
       }
     }
 
+    const gridFsId = await uploadBufferToGridFs(finalBuffer, {
+      filename: filename || originalname,
+      contentType: mimetype,
+      metadata: {
+        uploadedBy: String(userId),
+        groupId: normalizedGroupId,
+      },
+    });
+
     // 💾 Save file metadata in DB (store IV for decryption)
     const file = await File.create({
       filename,
       originalName: displayName,
-      path: filePath,
+      path: '',
+      gridFsId,
       size: req.file.size,
       type: fileType,
       groupId: normalizedGroupId,
@@ -107,5 +118,13 @@ exports.uploadFile = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'File upload failed', error: err.message });
+  } finally {
+    if (filePath && fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        // Ignore temp file cleanup failures.
+      }
+    }
   }
 };
