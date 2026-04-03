@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import axios from "axios";
 import { AuthContext } from "./authContextCreate";
 
 export function AuthProvider({ children }) {
@@ -7,42 +6,21 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
 
-  // Verify token validity on app load
+  // Restore auth state from localStorage on app load.
+  // Do not clear on new tabs, because localStorage is shared across tabs.
   useEffect(() => {
-    const verifyToken = async () => {
-      const token = localStorage.getItem("token");
-      const storedUser = localStorage.getItem("authUser");
-      
-      if (!token) {
-        setIsLoggedIn(false);
-        setUser(null);
-        setLoading(false);
-        return;
-      }
+    const token = localStorage.getItem("token");
+    const storedUser = localStorage.getItem("authUser");
 
-      try {
-        // Verify token with backend
-        const response = await axios.get("http://localhost:5000/api/auth/verify", {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        const verifiedUser = response.data?.user || (storedUser ? JSON.parse(storedUser) : null);
-        setIsLoggedIn(true);
-        setUser(verifiedUser);
-        if (verifiedUser) {
-          localStorage.setItem("authUser", JSON.stringify(verifiedUser));
-        }
-      } catch {
-        // Token is invalid or expired, clear it
-        localStorage.removeItem("token");
-        localStorage.removeItem("authUser");
-        setIsLoggedIn(false);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
+    setIsLoggedIn(!!token);
+    try {
+      setUser(storedUser ? JSON.parse(storedUser) : null);
+    } catch {
+      localStorage.removeItem("authUser");
+      setUser(null);
+    }
 
-    verifyToken();
+    setLoading(false);
   }, []);
 
   // Listen for storage changes (logout in another tab)
@@ -51,7 +29,12 @@ export function AuthProvider({ children }) {
       const token = localStorage.getItem("token");
       const storedUser = localStorage.getItem("authUser");
       setIsLoggedIn(!!token);
-      setUser(storedUser ? JSON.parse(storedUser) : null);
+      try {
+        setUser(storedUser ? JSON.parse(storedUser) : null);
+      } catch {
+        localStorage.removeItem("authUser");
+        setUser(null);
+      }
     };
 
     window.addEventListener("storage", handleStorageChange);

@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 const Log = require('../models/Log');
+const Group = require('../models/Group');
 
 const getClientIp = (req) => {
   const forwarded = req.headers['x-forwarded-for'];
@@ -19,13 +20,32 @@ const getClientIp = (req) => {
   return normalizeIp(req.ip || req.socket?.remoteAddress);
 };
 
+const sanitizeFileDisplayName = (value) => String(value || '')
+  .replace(/[\\/]+/g, ' ')
+  .replace(/[\r\n\t]+/g, ' ')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const getDisplayName = (originalName, customFileName) => {
+  const safeOriginal = sanitizeFileDisplayName(originalName);
+  const safeCustom = sanitizeFileDisplayName(customFileName);
+  if (!safeCustom) return safeOriginal;
+
+  const originalExt = path.extname(safeOriginal);
+  const customExt = path.extname(safeCustom);
+  const withExt = customExt ? safeCustom : `${safeCustom}${originalExt}`;
+
+  return withExt.slice(0, 180);
+};
+
 exports.uploadFile = async (req, res) => {
   try {
     const { originalname, filename, path: filePath, mimetype } = req.file;
-    const { password, expiresIn, groupId } = req.body;
+    const { password, expiresIn, groupId, customFileName } = req.body;
     const userId = req.user.id;
     const extension = path.extname(originalname || filename || '').replace('.', '').toLowerCase();
     const fileType = extension || (mimetype ? mimetype.split('/')[1] : '') || 'unknown';
+    const displayName = getDisplayName(originalname || filename, customFileName);
 
     // 🔐 Encrypt the file using createCipheriv
     const fileBuffer = fs.readFileSync(filePath);
@@ -43,14 +63,31 @@ exports.uploadFile = async (req, res) => {
       expiryDate = new Date(Date.now() + parseInt(expiresIn) * 1000);
     }
 
+    // Keep group uploads isolated by storing a normalized groupId,
+    // and only allow upload when the user is a member of that group.
+    let normalizedGroupId = '';
+    if (groupId) {
+      normalizedGroupId = String(groupId).trim().toUpperCase();
+      const group = await Group.findOne({ uniqueId: normalizedGroupId });
+      if (!group) {
+        return res.status(404).json({ message: 'Group not found' });
+      }
+
+      const memberId = String(userId);
+      const isMember = group.members.some((member) => String(member) === memberId);
+      if (!isMember) {
+        return res.status(403).json({ message: 'You must join the group before uploading files' });
+      }
+    }
+
     // 💾 Save file metadata in DB (store IV for decryption)
     const file = await File.create({
       filename,
-      originalName: originalname,
+      originalName: displayName,
       path: filePath,
       size: req.file.size,
       type: fileType,
-      groupId: groupId || '',
+      groupId: normalizedGroupId,
       password: password || null,
       expiresAt: expiryDate,
       uploadedBy: userId,

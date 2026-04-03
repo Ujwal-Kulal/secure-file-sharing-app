@@ -13,12 +13,28 @@ exports.register = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' });
+    const normalizedUsername = String(username || '').trim();
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    if (!normalizedUsername || !normalizedEmail || !password) {
+      return res.status(400).json({ message: 'Username, email and password are required' });
     }
 
-    const newUser = await User.create({ username, email, password });
+    const existingEmailUser = await User.findOne({ email: normalizedEmail });
+    if (existingEmailUser) {
+      return res.status(400).json({ message: 'User with this email already exists' });
+    }
+
+    const existingUsernameUser = await User.findOne({ username: normalizedUsername });
+    if (existingUsernameUser) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    const newUser = await User.create({
+      username: normalizedUsername,
+      email: normalizedEmail,
+      password,
+    });
     const token = generateToken(newUser);
 
     res.status(201).json({
@@ -34,6 +50,16 @@ exports.register = async (req, res) => {
       }
     });
   } catch (err) {
+    if (err?.code === 11000) {
+      if (err?.keyPattern?.email) {
+        return res.status(400).json({ message: 'User with this email already exists' });
+      }
+      if (err?.keyPattern?.username) {
+        return res.status(400).json({ message: 'Username already exists' });
+      }
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
@@ -42,7 +68,9 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user || !(await user.comparePassword(password))) {
       return res.status(401).json({ message: 'Invalid email or password' });
     }

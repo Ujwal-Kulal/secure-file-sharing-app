@@ -3,7 +3,7 @@ const router = express.Router();
 const { downloadFile, directDownloadFile } = require('../controllers/downloadController');
 const { protect, optionalProtect } = require('../middleware/authMiddleware');
 
-// Direct download (from dashboard) - bypasses expiry check, requires authentication
+// Direct download (from dashboard) - requires authentication and enforces expiry
 router.get('/direct-download/:id', protect, directDownloadFile);
 router.post('/direct-download/:id', protect, directDownloadFile);
 

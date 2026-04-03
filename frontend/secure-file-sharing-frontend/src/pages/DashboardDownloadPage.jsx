@@ -33,7 +33,7 @@ export default function DashboardDownloadPage() {
     try {
       // Get token from localStorage
       const token = localStorage.getItem("token");
-      // Use direct download endpoint that bypasses expiry but checks password
+      // Use direct download endpoint (requires auth, checks password, and enforces expiry)
       const res = await axios.post(
         `http://localhost:5000/api/files/direct-download/${fileId}`,
         showPassword ? { password } : {},
@@ -46,7 +46,7 @@ export default function DashboardDownloadPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", fileInfo?.filename || "file");
+      link.setAttribute("download", fileInfo?.originalName || fileInfo?.filename || "file");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -70,7 +70,7 @@ export default function DashboardDownloadPage() {
           <form onSubmit={handleDownload} style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18, background: 'rgba(255,255,255,0.08)', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', color: '#fff' }}>
               <FileText size={22} color="#00bcd4" />
-              <span><strong>File Name:</strong> {fileInfo.filename}</span>
+              <span><strong>File Name:</strong> {fileInfo.originalName || fileInfo.filename}</span>
             </div>
             <div style={{ color: '#fff', marginBottom: '10px' }}>
               <strong>Size:</strong> {(fileInfo.size / 1024).toFixed(2)} KB

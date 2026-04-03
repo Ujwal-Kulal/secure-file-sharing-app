@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { FileText, User, Clock, Globe, MonitorSmartphone, Activity, Mail, Eye } from "lucide-react";
-import "./HomePage.css";
+import "./ActivityLogs.css";
 
 export default function LogsPage() {
   const { fileId } = useParams();
@@ -42,24 +42,7 @@ export default function LogsPage() {
 
   const formatUserInfo = (log) => {
     if (log.isCurrentUser) {
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '4px 10px',
-            borderRadius: '999px',
-            background: 'linear-gradient(90deg, #00bcd4, #4f8cff)',
-            color: '#fff',
-            fontWeight: 'bold',
-            fontSize: '0.85rem',
-            letterSpacing: '0.4px'
-          }}
-        >
-          You
-        </span>
-      );
+      return <span className="user-badge">You</span>;
     }
 
     if (log.user === 'Anonymous') {
@@ -68,9 +51,9 @@ export default function LogsPage() {
     
     if (log.userDetails) {
       return (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+        <div className="user-info">
           <span>{log.user}</span>
-          <div style={{ fontSize: '0.8rem', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <div className="user-email">
             <Mail size={12} />
             {log.userDetails.email}
           </div>
@@ -106,57 +89,55 @@ export default function LogsPage() {
   };
 
   return (
-    <div className="home-container">
-      <div className="home-content" style={{ maxWidth: 900, margin: '48px auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', justifyContent: 'center' }}>
-          <Activity size={32} color="#4f8cff" />
-          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', margin: 0, textShadow: '2px 2px 8px rgba(0,0,0,0.18)' }}>File Activity Logs</h2>
+    <div className="logs-container">
+      <div className="logs-wrapper">
+        <div className="logs-header">
+          <div className="logs-header-icon">
+            <Activity size={32} />
+          </div>
+          <h1>File Activity Logs</h1>
         </div>
         
         {isFileOwner && (
-          <div style={{
-            background: 'rgba(76, 175, 80, 0.1)',
-            border: '1px solid #4caf50',
-            borderRadius: '8px',
-            padding: '12px',
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            color: '#4caf50'
-          }}>
+          <div className="logs-info-box permission">
             <Eye size={18} />
             <span>You can see detailed user information as the file owner</span>
           </div>
         )}
         
-        {getFileOwnerDisplay()}
+        {getFileOwnerDisplay() && (
+          <div className="logs-info-box owner">
+            <User size={18} />
+            <span>
+              <strong>File Owner:</strong> {logs[0]?.fileOwnerInfo?.username} ({logs[0]?.fileOwnerInfo?.email})
+            </span>
+          </div>
+        )}
         
-        {error && <div style={{ color: "#ff4d4f", marginBottom: 16 }}>{error}</div>}
+        {error && <div className="logs-info-box error"><Mail size={18} /> {error}</div>}
         {loading ? (
-          <div style={{ color: '#fff', textAlign: 'center', fontSize: '1.2rem' }}>Loading logs...</div>
+          <div className="logs-state loading">Loading activity logs...</div>
         ) : logs.length === 0 ? (
-          <div style={{ color: '#fff', textAlign: 'center', fontSize: '1.2rem' }}>No logs found for this file.</div>
+          <div className="logs-state">No activity logs found for this file</div>
         ) : (
           <>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '32px',
-              background: 'rgba(255,255,255,0.08)',
-              borderRadius: '12px',
-              padding: '18px 24px',
-              marginBottom: '28px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.10)'
-            }}>
-              <FileText size={28} color="#00bcd4" />
-              <div style={{ color: '#fff', fontSize: '1.1rem' }}>
-                <strong>File Name:</strong> {fileInfo?.fileName}<br />
-                <strong>File Size:</strong> {fileInfo?.fileSize} KB
+            <div className="logs-file-card">
+              <div className="logs-file-icon">
+                <FileText size={32} />
+              </div>
+              <div className="logs-file-info">
+                <div className="logs-file-info-row">
+                  <strong>File Name:</strong>
+                  <span>{fileInfo?.fileName}</span>
+                </div>
+                <div className="logs-file-info-row">
+                  <strong>File Size:</strong>
+                  <span>{fileInfo?.fileSize} KB</span>
+                </div>
               </div>
             </div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: "100%", background: "rgba(255,255,255,0.07)", borderRadius: 12, padding: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.10)', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <div className="logs-table-wrapper">
+              <table className="logs-table">
                 <colgroup>
                   <col style={{ width: '12%' }} />
                   <col style={{ width: '23%' }} />
@@ -165,22 +146,22 @@ export default function LogsPage() {
                   <col style={{ width: '18%' }} />
                 </colgroup>
                 <thead>
-                  <tr style={{ color: "#4f8cff", fontSize: '1.08rem', background: 'rgba(255,255,255,0.13)' }}>
-                    <th style={{ padding: '12px 8px', borderRadius: '8px 0 0 8px' }}><Activity size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Action</th>
-                    <th style={{ padding: '12px 8px' }}><Clock size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> Timestamp</th>
-                    <th style={{ padding: '12px 8px' }}><Globe size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> IP Address</th>
-                    <th style={{ padding: '12px 8px' }}><MonitorSmartphone size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> User Agent</th>
-                    <th style={{ padding: '12px 8px', borderRadius: '0 8px 8px 0' }}><User size={18} style={{ marginRight: 6, verticalAlign: 'middle' }} /> User</th>
+                  <tr>
+                    <th><Activity size={16} /> Action</th>
+                    <th><Clock size={16} /> Timestamp</th>
+                    <th><Globe size={16} /> IP Address</th>
+                    <th><MonitorSmartphone size={16} /> User Agent</th>
+                    <th><User size={16} /> User</th>
                   </tr>
                 </thead>
                 <tbody>
                   {logs.map((log, idx) => (
-                    <tr key={idx} style={{ color: '#fff', background: idx % 2 === 0 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.09)', fontSize: '1rem' }}>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.action}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={new Date(log.timestamp).toLocaleString()}>{new Date(log.timestamp).toLocaleString()}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{log.ipAddress || "N/A"}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={log.userAgent}>{log.userAgent}</td>
-                      <td style={{ padding: '10px 8px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{formatUserInfo(log)}</td>
+                    <tr key={idx}>
+                      <td>{log.action}</td>
+                      <td title={new Date(log.timestamp).toLocaleString()}>{new Date(log.timestamp).toLocaleString()}</td>
+                      <td>{log.ipAddress || "N/A"}</td>
+                      <td title={log.userAgent}>{log.userAgent}</td>
+                      <td>{formatUserInfo(log)}</td>
                     </tr>
                   ))}
                 </tbody>

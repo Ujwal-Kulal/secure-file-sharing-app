@@ -19,7 +19,7 @@ const getClientIp = (req) => {
   return normalizeIp(req.ip || req.socket?.remoteAddress);
 };
 
-// Direct download (from dashboard) - bypasses expiry check
+// Direct download (from dashboard) - still enforces expiry check
 exports.directDownloadFile = async (req, res) => {
   try {
     const { id } = req.params;
@@ -29,6 +29,11 @@ exports.directDownloadFile = async (req, res) => {
 
     if (!file) {
       return res.status(404).json({ message: 'File not found' });
+    }
+
+    // Enforce expiry for all download routes
+    if (file.expiresAt && new Date() > file.expiresAt) {
+      return res.status(410).json({ message: 'Link has expired' });
     }
 
     // For POST requests, check password if file has one
@@ -61,7 +66,7 @@ exports.directDownloadFile = async (req, res) => {
     });
 
     // Send file
-    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName || file.filename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
     res.send(decryptedBuffer);
   } catch (err) {
@@ -117,7 +122,7 @@ exports.downloadFile = async (req, res) => {
     });
 
     // Send file
-    res.setHeader('Content-Disposition', `attachment; filename="${file.filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${file.originalName || file.filename}"`);
     res.setHeader('Content-Type', 'application/octet-stream');
     res.send(decryptedBuffer);
   } catch (err) {

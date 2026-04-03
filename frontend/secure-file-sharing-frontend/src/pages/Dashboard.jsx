@@ -19,6 +19,7 @@ import {
   Sparkles,
   ChevronRight,
   Search,
+  AlertTriangle,
 } from "lucide-react";
 import "./HomePage.css";
 
@@ -28,26 +29,30 @@ export default function Dashboard() {
   const { logout, user } = useAuth();
   const fileInputRef = useRef(null);
 
-  const [deleteError, setDeleteError] = useState("");
-  const [deleteSuccess, setDeleteSuccess] = useState("");
-  const [linkCopied, setLinkCopied] = useState("");
-
   const [files, setFiles] = useState([]);
   const [sharedFiles, setSharedFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [file, setFile] = useState(null);
+  const [customFileName, setCustomFileName] = useState("");
   const [password, setPassword] = useState("");
   const [expiresIn, setExpiresIn] = useState("");
   const [expiryUnit, setExpiryUnit] = useState("seconds");
-  const [uploadError, setUploadError] = useState("");
-  const [uploadSuccess, setUploadSuccess] = useState("");
   const [isDraggingFile, setIsDraggingFile] = useState(false);
   const [openActionMenuId, setOpenActionMenuId] = useState(null);
   const [groupInfo, setGroupInfo] = useState(null);
   const [showMembers, setShowMembers] = useState(false);
   const [sharedSearchQuery, setSharedSearchQuery] = useState("");
   const [demoteTargetMember, setDemoteTargetMember] = useState(null);
-  const [demoteToast, setDemoteToast] = useState({ type: "", message: "" });
+  const [appToast, setAppToast] = useState({ type: "", message: "" });
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    confirmText: "Confirm",
+    tone: "warning",
+    actionType: "",
+    payload: null,
+  });
 
   const fetchFiles = useCallback(async () => {
     try {
@@ -103,6 +108,7 @@ export default function Dashboard() {
   const handleFileSelection = (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
+      setCustomFileName(selectedFile.name || "");
     }
   };
 
@@ -124,21 +130,40 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if (!demoteToast.message) return;
+    if (!appToast.message) return;
     const timer = setTimeout(() => {
-      setDemoteToast({ type: "", message: "" });
-    }, 2600);
+      setAppToast({ type: "", message: "" });
+    }, 2800);
     return () => clearTimeout(timer);
-  }, [demoteToast]);
+  }, [appToast]);
+
+  const showToast = useCallback((type, message) => {
+    setAppToast({ type, message });
+  }, []);
+
+  const askConfirm = useCallback(({ title, message, confirmText = "Confirm", tone = "warning", actionType, payload = null }) => {
+    setConfirmDialog({
+      open: true,
+      title,
+      message,
+      confirmText,
+      tone,
+      actionType,
+      payload,
+    });
+  }, []);
+
+  const closeConfirm = useCallback(() => {
+    setConfirmDialog((prev) => ({ ...prev, open: false }));
+  }, []);
 
   const handleUpload = async (e) => {
     e.preventDefault();
     setUploading(true);
-    setUploadError("");
-    setUploadSuccess("");
 
     const formData = new FormData();
     formData.append("file", file);
+    if (customFileName.trim()) formData.append("customFileName", customFileName.trim());
     if (password) formData.append("password", password);
     if (groupUniqueId) formData.append("groupId", groupUniqueId);
 
@@ -160,23 +185,21 @@ export default function Dashboard() {
         },
       });
 
-      setUploadSuccess("File uploaded successfully!");
+      showToast("success", "File uploaded successfully!");
       setFile(null);
+      setCustomFileName("");
       setPassword("");
       setExpiresIn("");
       setExpiryUnit("seconds");
       fetchFiles();
     } catch (error) {
-      setUploadError(error.response?.data?.message || "Upload failed");
+      showToast("error", error.response?.data?.message || "Upload failed");
     }
 
     setUploading(false);
   };
 
   const handleDelete = async (fileId) => {
-    setDeleteError("");
-    setDeleteSuccess("");
-
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`http://localhost:5000/api/files/${fileId}`, {
@@ -185,11 +208,10 @@ export default function Dashboard() {
         },
       });
 
-      setDeleteSuccess("File deleted successfully!");
+      showToast("success", "File deleted successfully!");
       fetchFiles();
-      setTimeout(() => setDeleteSuccess(""), 2000);
     } catch (error) {
-      setDeleteError(error.response?.data?.message || "Delete failed");
+      showToast("error", error.response?.data?.message || "Delete failed");
     }
   };
 
@@ -199,12 +221,17 @@ export default function Dashboard() {
 
   const handleLogout = () => {
     logout();
-    navigate("/");
+    navigate("/", { state: { justLoggedOut: true, timestamp: Date.now() } });
   };
 
   const handleDownload = async (fileId) => {
     const selectedFile = files.find((f) => f._id === fileId) || sharedFiles.find((f) => f._id === fileId);
     const isOwnedFile = files.find((f) => f._id === fileId) !== undefined;
+
+    if (selectedFile && isFileExpired(selectedFile)) {
+      showToast("warning", "This file has expired and can no longer be downloaded.");
+      return;
+    }
 
     if (selectedFile && selectedFile.password) {
       navigate(`/dashboard-download/${fileId}`);
@@ -238,30 +265,36 @@ export default function Dashboard() {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = url;
-        link.setAttribute("download", selectedFile?.filename || "file");
+        link.setAttribute("download", selectedFile?.originalName || selectedFile?.filename || "file");
         document.body.appendChild(link);
         link.click();
         link.remove();
         window.URL.revokeObjectURL(url);
       } else {
-        console.error("Download failed");
+        let message = "Download failed";
+        try {
+          const data = await response.json();
+          message = data?.message || message;
+        } catch {
+          // Ignore parse error and keep fallback message.
+        }
+        showToast("error", message);
       }
     } catch (error) {
-      console.error("Download error:", error);
+      showToast("error", error?.response?.data?.message || "Download error");
     }
   };
 
   const handleSharableLink = (fileId) => {
     const isOwnedFile = files.find((f) => f._id === fileId) !== undefined;
     if (!isOwnedFile) {
-      alert("You can only share links for files you own.");
+      showToast("warning", "You can only share links for files you own.");
       return;
     }
 
     const link = `${window.location.origin}/download/${fileId}`;
     navigator.clipboard.writeText(link);
-    setLinkCopied("Sharable link copied to clipboard!");
-    setTimeout(() => setLinkCopied(""), 2000);
+    showToast("success", "Sharable link copied to clipboard!");
   };
 
   const handleActivityLogs = (fileId) => {
@@ -278,8 +311,9 @@ export default function Dashboard() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       fetchFiles();
+      showToast("success", "Member promoted to owner successfully.");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to promote member");
+      showToast("error", error.response?.data?.message || "Failed to promote member");
     }
   };
 
@@ -291,20 +325,16 @@ export default function Dashboard() {
       await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}/owners/${memberId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setDemoteToast({ type: "success", message: "Owner role removed successfully." });
+      showToast("success", "Owner role removed successfully.");
       setDemoteTargetMember(null);
       fetchFiles();
     } catch (error) {
-      setDemoteToast({
-        type: "error",
-        message: error.response?.data?.message || "Failed to demote owner",
-      });
+      showToast("error", error.response?.data?.message || "Failed to demote owner");
     }
   };
 
-  const handleRemoveMember = async (memberId) => {
+  const removeMemberConfirmed = async (memberId) => {
     if (!groupUniqueId) return;
-    if (!window.confirm("Remove this member from the group?")) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -312,23 +342,59 @@ export default function Dashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchFiles();
+      showToast("success", "Member removed from group.");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to remove member");
+      showToast("error", error.response?.data?.message || "Failed to remove member");
     }
   };
 
-  const handleDeleteGroup = async () => {
+  const handleRemoveMember = (memberId) => {
+    askConfirm({
+      title: "Remove Member",
+      message: "This member will lose access to all files shared in this group.",
+      confirmText: "Remove Member",
+      tone: "warning",
+      actionType: "remove-member",
+      payload: memberId,
+    });
+  };
+
+  const deleteGroupConfirmed = async () => {
     if (!groupUniqueId) return;
-    if (!window.confirm("Delete this group and all its files? This cannot be undone.")) return;
 
     try {
       const token = localStorage.getItem("token");
       await axios.delete(`http://localhost:5000/api/groups/${groupUniqueId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      showToast("success", "Group deleted successfully.");
       navigate("/");
     } catch (error) {
-      alert(error.response?.data?.message || "Failed to delete group");
+      showToast("error", error.response?.data?.message || "Failed to delete group");
+    }
+  };
+
+  const handleDeleteGroup = () => {
+    askConfirm({
+      title: "Delete Group",
+      message: "Delete this group and all its files? This action cannot be undone.",
+      confirmText: "Delete Group",
+      tone: "danger",
+      actionType: "delete-group",
+    });
+  };
+
+  const handleConfirmDialogAction = async () => {
+    const { actionType, payload } = confirmDialog;
+    closeConfirm();
+
+    if (actionType === "remove-member") {
+      await removeMemberConfirmed(payload);
+      return;
+    }
+
+    if (actionType === "delete-group") {
+      await deleteGroupConfirmed();
     }
   };
 
@@ -530,9 +596,11 @@ export default function Dashboard() {
                               </span>
                             )}
                           </span>
-                          <span style={{ color: "rgba(255,255,255,0.76)", fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis" }}>
-                            {member.email}
-                          </span>
+                          {member.email && (
+                            <span style={{ color: "rgba(255,255,255,0.76)", fontSize: "0.82rem", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {member.email}
+                            </span>
+                          )}
                         </div>
                         {groupInfo.isOwner && member.id !== (user?._id || user?.id) && (
                           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -645,6 +713,13 @@ export default function Dashboard() {
             </div>
             <input
               type="text"
+              placeholder="Rename file before upload"
+              value={customFileName}
+              onChange={(e) => setCustomFileName(e.target.value)}
+              className="upload-field"
+            />
+            <input
+              type="text"
               placeholder="Security Password (optional)"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -668,8 +743,6 @@ export default function Dashboard() {
             <button type="submit" className="indian-button indian-button--indigo upload-submit" disabled={uploading} style={{ padding: "11px", border: "none", fontWeight: "bold", cursor: "pointer", width: "100%", maxWidth: "220px", alignSelf: "center" }}>
               {uploading ? "Uploading..." : <><Upload size={18} style={{ marginRight: "8px" }} /> Upload</>}
             </button>
-            {uploadError && <div style={{ color: "#ffb3b3", fontWeight: 600 }}>{uploadError}</div>}
-            {uploadSuccess && <div style={{ color: "#b8ffce", fontWeight: 600 }}>{uploadSuccess}</div>}
           </form>
           </div>
         </div>
@@ -686,9 +759,6 @@ export default function Dashboard() {
               overflow: "visible",
             }}
           >
-            {linkCopied && <div style={{ color: "#4caf50", marginBottom: "10px", textAlign: "center" }}>{linkCopied}</div>}
-            {deleteError && <div style={{ color: "#ff4d4f", marginBottom: "10px", textAlign: "center" }}>{deleteError}</div>}
-            {deleteSuccess && <div style={{ color: "#4caf50", marginBottom: "10px", textAlign: "center" }}>{deleteSuccess}</div>}
 
             {files.length === 0 ? (
               <p style={{ color: "white", textAlign: "center" }}>No files uploaded by you yet.</p>
@@ -714,7 +784,7 @@ export default function Dashboard() {
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "14px", marginBottom: "12px" }}>
                       <div style={{ minWidth: 0, textAlign: "left", flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "6px" }}>
-                          <span style={{ color: "#fff", fontSize: "1rem", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }}>{item.filename}</span>
+                          <span style={{ color: "#fff", fontSize: "1rem", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }}>{item.originalName || item.filename}</span>
                           <span style={{ padding: "5px 10px", borderRadius: "999px", background: "rgba(79,140,255,0.18)", color: "#d8e6ff", fontSize: "0.72rem", fontWeight: 700, border: "1px solid rgba(79,140,255,0.24)" }}>{getFileTypeLabel(item)}</span>
                           <span style={{ padding: "5px 10px", borderRadius: "999px", background: item.isOwner ? "rgba(34,197,94,0.18)" : "rgba(255,152,0,0.18)", color: item.isOwner ? "#c8ffd9" : "#ffe0b2", fontSize: "0.72rem", fontWeight: 700, border: "1px solid rgba(255,255,255,0.12)" }}>{item.isOwner ? "Owned" : "Shared"}</span>
                         </div>
@@ -898,7 +968,7 @@ export default function Dashboard() {
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "14px" }}>
                       <div style={{ minWidth: 0, textAlign: "left", flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", marginBottom: "6px" }}>
-                          <span style={{ color: "#fff", fontSize: "1rem", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }}>{item.filename}</span>
+                          <span style={{ color: "#fff", fontSize: "1rem", fontWeight: 800, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "280px" }}>{item.originalName || item.filename}</span>
                           <span style={{ padding: "5px 10px", borderRadius: "999px", background: "rgba(79,140,255,0.18)", color: "#d8e6ff", fontSize: "0.72rem", fontWeight: 700, border: "1px solid rgba(79,140,255,0.24)" }}>{getFileTypeLabel(item)}</span>
                         </div>
                         <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", color: "rgba(255,255,255,0.86)", fontSize: "0.82rem" }}>
@@ -932,9 +1002,39 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {demoteToast.message && (
-          <div className={`owner-toast owner-toast--${demoteToast.type || "info"}`}>
-            {demoteToast.message}
+        {appToast.message && (
+          <div className={`owner-toast owner-toast--${appToast.type || "info"}`}>
+            {appToast.message}
+          </div>
+        )}
+
+        {confirmDialog.open && (
+          <div className="owner-modal-backdrop" role="dialog" aria-modal="true">
+            <div className={`owner-modal-card owner-modal-card--${confirmDialog.tone || "warning"}`}>
+              <h4 style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <AlertTriangle size={18} />
+                {confirmDialog.title}
+              </h4>
+              <p>{confirmDialog.message}</p>
+              <div className="owner-modal-actions">
+                <button
+                  type="button"
+                  className="indian-button indian-button--glass"
+                  style={{ border: "none", padding: "8px 12px" }}
+                  onClick={closeConfirm}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`indian-button ${confirmDialog.tone === "danger" ? "indian-button--crimson" : "indian-button--saffron"}`}
+                  style={{ border: "none", padding: "8px 12px" }}
+                  onClick={handleConfirmDialogAction}
+                >
+                  {confirmDialog.confirmText}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

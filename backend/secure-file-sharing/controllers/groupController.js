@@ -159,6 +159,18 @@ exports.getGroupByUniqueId = async (req, res) => {
       return res.status(403).json({ message: 'You must join this group first' });
     }
 
+    const maskMember = (member) => {
+      const id = String(member._id);
+      return {
+        id: member._id,
+        username: member.username,
+        email: id === memberId ? member.email : '',
+        isOwner: isGroupOwner(group, member._id),
+      };
+    };
+
+    const createdByEmail = String(group.createdBy._id) === memberId ? group.createdBy.email : '';
+
     res.json({
       group: {
         id: group._id,
@@ -166,20 +178,19 @@ exports.getGroupByUniqueId = async (req, res) => {
         uniqueId: group.uniqueId,
         memberLimit: group.memberLimit,
         memberCount: group.members.length,
-        createdBy: group.createdBy,
+        createdBy: {
+          id: group.createdBy._id,
+          username: group.createdBy.username,
+          email: createdByEmail,
+        },
         owners: (group.owners && group.owners.length > 0 ? group.owners : [group.createdBy]).map((owner) => ({
           id: owner._id,
           username: owner.username,
-          email: owner.email,
+          email: String(owner._id) === memberId ? owner.email : '',
         })),
         isMember,
         isOwner,
-        members: group.members.map((member) => ({
-          id: member._id,
-          username: member.username,
-          email: member.email,
-          isOwner: isGroupOwner(group, member._id),
-        })),
+        members: group.members.map(maskMember),
       },
     });
   } catch (err) {

@@ -1,5 +1,9 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap');
+
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --font-body: 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-display: 'Sora', 'Plus Jakarta Sans', sans-serif;
+  font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
 
@@ -35,6 +39,18 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background: #091427;
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 #root {

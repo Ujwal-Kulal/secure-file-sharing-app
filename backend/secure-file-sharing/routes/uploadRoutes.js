@@ -9,6 +9,14 @@ const File = require('../models/File');
 const Log = require('../models/Log');
 const Group = require('../models/Group');
 
+const publicFilesFilter = {
+  $or: [
+    { groupId: '' },
+    { groupId: null },
+    { groupId: { $exists: false } },
+  ],
+};
+
 const uploadsDir = path.join(__dirname, '..', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
@@ -64,8 +72,11 @@ router.get('/', protect, async (req, res) => {
       return res.json(allGroupFiles);
     }
 
-    // Show files owned by the current user
-    const ownedFiles = await File.find({ uploadedBy: req.user.id }).sort({ createdAt: -1 });
+    // Public dashboard should include only public uploads (no groupId)
+    const ownedFiles = await File.find({
+      uploadedBy: req.user.id,
+      ...publicFilesFilter,
+    }).sort({ createdAt: -1 });
     const fileIds = ownedFiles.map((file) => file._id);
     const downloadCountsRaw = await Log.aggregate([
       { $match: { fileId: { $in: fileIds }, action: 'download' } },
@@ -139,11 +150,16 @@ router.get('/shared', protect, async (req, res) => {
     // Include password-protected files as well; password is enforced during download.
     const sharedFiles = await File.find({
       uploadedBy: { $ne: req.user._id },
-      $or: [
-        { expiresAt: { $exists: false } },
-        { expiresAt: null },
-        { expiresAt: { $gt: new Date() } }
-      ]
+      $and: [
+        publicFilesFilter,
+        {
+          $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: null },
+            { expiresAt: { $gt: new Date() } },
+          ],
+        },
+      ],
     }).sort({ createdAt: -1 });
     const sharedIds = sharedFiles.map((file) => file._id);
     const sharedCountsRaw = await Log.aggregate([

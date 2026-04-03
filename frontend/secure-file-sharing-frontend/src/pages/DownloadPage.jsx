@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import { Download, FileText, Lock, Clock, AlertCircle } from "lucide-react";
-import "./HomePage.css";
+import "./DownloadLink.css";
 
 export default function DownloadPage() {
   const { fileId } = useParams();
@@ -77,7 +77,7 @@ export default function DownloadPage() {
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", fileInfo?.filename || "file");
+      link.setAttribute("download", fileInfo?.originalName || fileInfo?.filename || "file");
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -134,109 +134,73 @@ export default function DownloadPage() {
   };
 
   return (
-    <div className="home-container">
-      <div className="home-content" style={{ maxWidth: 500, margin: '48px auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px', justifyContent: 'center' }}>
-          <Download size={32} color="#4f8cff" />
-          <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#fff', margin: 0, textShadow: '2px 2px 8px rgba(0,0,0,0.18)' }}>Download File</h2>
+    <div className="download-container">
+      <div className="download-wrapper">
+        <div className="download-header">
+          <div className="download-header-icon">
+            <Download size={32} />
+          </div>
+          <h2>Download File</h2>
         </div>
-        
-        {error && <div style={{ color: "#ff4d4f", marginBottom: 16 }}>{error}</div>}
-        
+
+        {error && <div className="download-error">{error}</div>}
+
         {isExpired && (
-          <div style={{ 
-            background: 'rgba(255, 77, 79, 0.1)', 
-            border: '1px solid #ff4d4f', 
-            borderRadius: '8px', 
-            padding: '16px', 
-            marginBottom: '16px',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}>
-            <AlertCircle size={20} color="#ff4d4f" />
-            <span style={{ color: '#ff4d4f', fontWeight: 'bold' }}>Link Expired</span>
+          <div className="download-status-box expired">
+            <AlertCircle size={20} />
+            <span>Link Expired</span>
           </div>
         )}
-        
+
         {fileInfo ? (
-          <form onSubmit={handleDownload} style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 18, background: 'rgba(255,255,255,0.08)', borderRadius: '12px', padding: '24px', boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '10px', color: '#fff' }}>
-              <FileText size={22} color="#00bcd4" />
-              <span><strong>File Name:</strong> {fileInfo.filename}</span>
+          <form onSubmit={handleDownload} className="download-file-card">
+            <div className="download-file-info">
+              <FileText size={22} />
+              <div>
+                <strong>File Name:</strong> {fileInfo.originalName || fileInfo.filename}
+              </div>
             </div>
-            <div style={{ color: '#fff', marginBottom: '10px' }}>
+            <div className="download-file-size">
               <strong>Size:</strong> {(fileInfo.size / 1024).toFixed(2)} KB
             </div>
-            
+
             {fileInfo.expiresAt && (
-              <div style={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                gap: '8px', 
-                marginBottom: '10px',
-                padding: '12px',
-                background: isExpired ? 'rgba(255, 77, 79, 0.1)' : 'rgba(255, 152, 0, 0.1)',
-                borderRadius: '8px',
-                border: `1px solid ${isExpired ? '#ff4d4f' : '#ff9800'}`
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: isExpired ? '#ff4d4f' : '#ff9800' }}>
-                  <Clock size={18} color={isExpired ? "#ff4d4f" : "#ff9800"} />
-                  <span style={{ fontWeight: 'bold' }}>
+              <div className={`download-expiry-box ${isExpired ? 'expired' : 'active'}`}>
+                <div className="download-expiry-header">
+                  <Clock size={18} />
+                  <span>
                     {isExpired ? 'Expired at:' : 'Expires at:'}
                   </span>
                 </div>
-                <div style={{ 
-                  color: isExpired ? '#ff4d4f' : '#fff',
-                  fontSize: '0.9rem',
-                  marginLeft: '26px'
-                }}>
+                <div className="download-expiry-time">
                   {formatExpiryDate(fileInfo.expiresAt)}
                 </div>
                 {!isExpired && timeRemaining && (
-                  <div style={{ 
-                    color: '#4caf50',
-                    fontSize: '0.85rem',
-                    marginLeft: '26px',
-                    fontStyle: 'italic'
-                  }}>
+                  <div className="download-expiry-remaining">
                     Time remaining: {timeRemaining}
                   </div>
                 )}
               </div>
             )}
-            
+
             {showPassword && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                <Lock size={18} color="#ff9800" />
+              <div className="download-password-group">
+                <Lock size={18} />
                 <input
                   type="password"
                   placeholder="Enter password to download"
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  style={{ padding: "8px", borderRadius: "8px", width: '100%' }}
+                  className="download-password-input"
                   required
                 />
               </div>
             )}
-            
-            <button 
-              type="submit" 
-              disabled={downloading || isExpired} 
-              style={{ 
-                background: isExpired ? "#666" : "#4f8cff", 
-                color: "#fff", 
-                padding: "10px", 
-                borderRadius: "8px", 
-                border: "none", 
-                fontWeight: "bold", 
-                cursor: isExpired ? "not-allowed" : "pointer", 
-                fontSize: '1.1rem', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                gap: '8px' 
-              }}
+
+            <button
+              type="submit"
+              disabled={downloading || isExpired}
+              className={`download-btn ${isExpired ? 'disabled' : 'active'}`}
             >
               {downloading ? (
                 <><Download size={18} /> Downloading...</>
@@ -248,7 +212,7 @@ export default function DownloadPage() {
             </button>
           </form>
         ) : (
-          <div style={{ color: '#fff', textAlign: 'center', fontSize: '1.2rem' }}>Loading file info...</div>
+          <div className="download-loading">Loading file info...</div>
         )}
       </div>
     </div>
