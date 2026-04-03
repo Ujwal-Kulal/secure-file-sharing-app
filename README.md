@@ -1,90 +1,117 @@
-# Secure File Sharing App
+# SecureShare
 
-A full stack application for secure file sharing with authentication, upload/download, and logging features.
+Live demo: https://secure-file-sharing-app-sigma.vercel.app/
 
-## Features
-- User authentication (register/login)
-- Secure file upload and download
-- File access logging
-- Rate limiting and security middleware
-- Modern React frontend
+SecureShare is a production-style secure file sharing platform built with a React/Vite frontend and a Node.js/Express backend. It supports authenticated file upload/download, private group workspaces, file expiry, access logs, and encrypted storage using MongoDB GridFS.
 
-## Project Structure
-```
-backend/secure-file-sharing/   # Node.js/Express backend
-frontend/secure-file-sharing-frontend/   # React frontend
-```
+## What This Project Demonstrates
 
-## Getting Started
+- Full-stack authentication with JWT and persistent session handling
+- Role-aware group collaboration with owner and member controls
+- Secure file upload, download, rename, and expiry enforcement
+- Private group file isolation so group content does not leak into public listings
+- Download activity logging for audit visibility
+- Custom premium UI with reusable toasts, confirmation modals, and polished navigation flows
+- Free deployment readiness with Vercel, Render, and MongoDB Atlas
 
-### Backend
-1. Navigate to `backend/secure-file-sharing`
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Set up environment variables (see `.env.example` if available)
-4. Start the server:
-   ```
-   npm start
-   ```
+## Key Features
 
-### Frontend
-1. Navigate to `frontend/secure-file-sharing-frontend`
-2. Install dependencies:
-   ```
-   npm install
-   ```
-3. Start the development server:
-   ```
-   npm run dev
-   ```
+- User registration, login, logout, and profile management
+- Create, join, and manage private groups using unique group IDs
+- Upload files with optional custom display names
+- Encrypt file content before storage
+- Store encrypted files in MongoDB GridFS for deployment-friendly persistence
+- Share files through public or direct download links
+- Enforce file expiry on every download path
+- Track download logs for each file
+- Hide sensitive group member emails from other members
+- Prevent duplicate email registration with clear validation feedback
+- Replace generic browser alerts with premium in-app notifications
+
+## Tech Stack
+
+- Frontend: React, Vite, React Router, Axios
+- Backend: Node.js, Express, MongoDB, Mongoose
+- Security: JWT, bcrypt, rate limiting, CORS, encryption with `crypto`
+- Storage: MongoDB Atlas + GridFS
+- Deployment: Vercel frontend, Render backend
+
+## Architecture Overview
+
+- The frontend is a single-page React app with routed views for Home, Dashboard, Profile, Download, Logs, and Group pages.
+- The backend exposes REST APIs for auth, groups, files, downloads, and logs.
+- Uploaded files are encrypted on the server before being written to GridFS.
+- Access control is enforced on the backend so file visibility and downloads remain protected even if the frontend changes.
+- The app uses environment-based configuration so local development and production deployment use the same codebase.
+
+## Deployment Status
+
+The project is already deployed and available here:
+
+- [SecureShare Live Demo](https://secure-file-sharing-app-sigma.vercel.app/)
 
 ## Production Setup
 
-This project is ready for free deployment with the following stack:
+### Backend environment variables
 
-- Frontend: Vercel or Netlify
-- Backend: Render Web Service
-- Database and file storage: MongoDB Atlas free tier with GridFS
-
-### Required Environment Variables
-
-Backend (`backend/secure-file-sharing/.env`):
+Create `backend/secure-file-sharing/.env` with:
 
 ```env
 PORT=5000
 MONGO_URI=your-mongodb-atlas-connection-string
 JWT_SECRET=your-long-random-secret
 TOKEN_EXPIRY=2d
-FRONTEND_URL=https://your-frontend-domain.vercel.app
+FRONTEND_URL=https://secure-file-sharing-app-sigma.vercel.app
 ```
 
-Frontend (`frontend/secure-file-sharing-frontend/.env`):
+### Frontend environment variables
+
+Create `frontend/secure-file-sharing-frontend/.env` with:
 
 ```env
 VITE_API_BASE_URL=https://your-backend-domain.onrender.com
 ```
 
-### Deployment Notes
+## Local Development
 
-1. Deploy the backend first on Render.
-2. Deploy the frontend on Vercel or Netlify.
-3. Update `FRONTEND_URL` on the backend to your live frontend domain.
-4. Ensure the frontend is using the deployed backend URL through `VITE_API_BASE_URL`.
-5. For Vercel, the frontend includes a SPA rewrite so routes like `/dashboard`, `/profile`, and `/download/:id` work on refresh.
+### Backend
 
-### Local Development Notes
+```bash
+cd backend/secure-file-sharing
+npm install
+npm start
+```
 
-- The frontend uses React Router for page navigation.
-- The backend serves encrypted file data and stores file blobs in MongoDB GridFS.
-- Uploaded files are not stored on the host filesystem in production.
+### Frontend
 
-## Deployment
-- Configure the environment variables listed above.
-- Build the frontend with `npm run build` before deploying.
-- Use a platform-specific SPA fallback for the frontend so direct links and refreshes work correctly.
-- Keep the backend and frontend domains in sync through the two URL variables above.
+```bash
+cd frontend/secure-file-sharing-frontend
+npm install
+npm run dev
+```
+
+## Deployment Notes
+
+- Frontend: deploy the Vite app to Vercel or Netlify.
+- Backend: deploy the Express API to Render.
+- Database: use MongoDB Atlas free tier.
+- GridFS is used for file persistence, so uploads remain available after deployment restarts.
+- The frontend includes SPA route fallback support, so direct links and page refreshes work correctly in production.
+
+## Project Structure
+
+```text
+backend/secure-file-sharing/           Express backend
+frontend/secure-file-sharing-frontend/ React frontend
+```
+
+## Why This Project Is Good For a Portfolio
+
+- It shows practical full-stack engineering rather than a toy demo.
+- It covers authentication, authorization, storage, routing, deployment, and UI polish in one app.
+- It demonstrates security decisions at the backend, not just in the UI.
+- It includes a live production deployment, which is often more persuasive than code alone.
 
 ## License
+
 Specify your license here.
